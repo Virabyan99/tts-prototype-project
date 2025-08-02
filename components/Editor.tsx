@@ -18,6 +18,7 @@ import { ListNode, ListItemNode } from '@lexical/list';
 import { LinkNode } from '@lexical/link';
 import {franc} from 'franc';
 import Toolbar from './Toolbar';
+import { ttsManager } from '@/lib/tts';
 
 const initialConfig = {
   namespace: 'NoteEditor',
@@ -45,6 +46,7 @@ function SyncPlugin() {
   const [editor] = useLexicalComposerContext();
   const setNoteContent = useAppStore((state) => state.setNoteContent);
   const setDetectedLanguage = useAppStore((state) => state.setDetectedLanguage);
+  const setPlaying = useAppStore((state) => state.setPlaying);
 
   // Function to detect language using Franc
   const detectLanguage = useCallback(
@@ -82,8 +84,20 @@ function SyncPlugin() {
       });
     });
 
-    return () => unsubscribe();
-  }, [editor, setNoteContent, setDetectedLanguage, detectLanguage]);
+    // Sync TTS state
+    const handleTTSState = () => {
+      setPlaying(ttsManager.isSpeaking());
+    };
+
+    // Check TTS state periodically
+    const interval = setInterval(handleTTSState, 1000);
+
+    // Clean up
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+    };
+  }, [editor, setNoteContent, setDetectedLanguage, detectLanguage, setPlaying]);
 
   return null;
 }

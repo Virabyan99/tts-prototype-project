@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { produce } from 'immer';
+import { ttsManager } from './tts';
 
 // Define the shape of our state
 interface AppState {
@@ -8,8 +9,16 @@ interface AppState {
   isPlaying: boolean; // Store TTS playback state
   setNoteContent: (content: string) => void;
   setDetectedLanguage: (language: string) => void;
-  togglePlaying: () => void; // Toggle TTS playback state
+  togglePlaying: () => void; // Toggle TTS playback
+  setPlaying: (isPlaying: boolean) => void; // Set playback state explicitly
 }
+
+// Map ISO 639-3 codes to Web Speech API language codes
+const languageMap: Record<string, string> = {
+  eng: 'en-US',
+  spa: 'es-ES',
+  fra: 'fr-FR',
+};
 
 // Create the Zustand store with Immer
 export const useAppStore = create<AppState>((set, get) => ({
@@ -28,10 +37,28 @@ export const useAppStore = create<AppState>((set, get) => ({
         state.detectedLanguage = language;
       })
     ),
-  togglePlaying: () =>
+  togglePlaying: () => {
+    const { isPlaying, noteContent, detectedLanguage } = get();
+    if (isPlaying) {
+      ttsManager.stop();
+      set(
+        produce((state) => {
+          state.isPlaying = false;
+        })
+      );
+    } else if (noteContent) {
+      ttsManager.start(noteContent, languageMap[detectedLanguage] || 'en-US');
+      set(
+        produce((state) => {
+          state.isPlaying = true;
+        })
+      );
+    }
+  },
+  setPlaying: (isPlaying) =>
     set(
       produce((state) => {
-        state.isPlaying = !state.isPlaying;
+        state.isPlaying = isPlaying;
       })
     ),
 }));
