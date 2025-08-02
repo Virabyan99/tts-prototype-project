@@ -7,16 +7,16 @@ import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPl
 import { TRANSFORMERS } from '@lexical/markdown';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getRoot, $createParagraphNode, $createTextNode } from 'lexical';
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useAppStore } from '@/lib/store';
 import { saveNote, loadNote } from '@/lib/db';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
-
 // Import required nodes for markdown transformers
 import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import { CodeNode } from '@lexical/code';
 import { ListNode, ListItemNode } from '@lexical/list';
 import { LinkNode } from '@lexical/link';
+import {franc} from 'franc';
 
 const initialConfig = {
   namespace: 'NoteEditor',
@@ -43,6 +43,17 @@ const initialConfig = {
 function SyncPlugin() {
   const [editor] = useLexicalComposerContext();
   const setNoteContent = useAppStore((state) => state.setNoteContent);
+  const setDetectedLanguage = useAppStore((state) => state.setDetectedLanguage);
+
+  // Function to detect language using Franc
+  const detectLanguage = useCallback(
+    (text: string) => {
+      if (text.length < 10) return 'eng'; // Default to English for short text
+      const result = franc(text, { minLength: 10, only: ['eng', 'spa', 'fra'] }); // Limit to common languages
+      return result !== 'und' ? result : 'eng'; // Fallback to English if undetermined
+    },
+    []
+  );
 
   useEffect(() => {
     // Load note on mount
@@ -56,20 +67,22 @@ function SyncPlugin() {
           root.append(paragraph);
         });
         setNoteContent(content);
+        setDetectedLanguage(detectLanguage(content));
       }
     });
 
-    // Save note on content change
+    // Sync content and detect language on update
     const unsubscribe = editor.registerUpdateListener(({ editorState }) => {
       editorState.read(() => {
         const content = $getRoot().getTextContent();
         setNoteContent(content);
+        setDetectedLanguage(detectLanguage(content));
         saveNote(content);
       });
     });
 
     return () => unsubscribe();
-  }, [editor, setNoteContent]);
+  }, [editor, setNoteContent, setDetectedLanguage, detectLanguage]);
 
   return null;
 }
