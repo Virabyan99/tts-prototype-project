@@ -12,6 +12,7 @@
     "@lexical/react": "^0.33.1",
     "@next/bundle-analyzer": "^15.4.5",
     "@radix-ui/react-slot": "^1.2.3",
+    "@tabler/icons-react": "^3.34.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "franc": "^6.2.0",

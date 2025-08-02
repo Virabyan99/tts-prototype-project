@@ -17,6 +17,7 @@ import { CodeNode } from '@lexical/code';
 import { ListNode, ListItemNode } from '@lexical/list';
 import { LinkNode } from '@lexical/link';
 import {franc} from 'franc';
+import Toolbar from './Toolbar';
 
 const initialConfig = {
   namespace: 'NoteEditor',
@@ -90,7 +91,8 @@ function SyncPlugin() {
 export default function Editor() {
   return (
     <LexicalComposer initialConfig={initialConfig}>
-      <div className="editor-container border rounded p-4 bg-white">
+      <div className="editor-container border rounded p-4 bg-white w-full max-w-2xl">
+        <Toolbar />
         <RichTextPlugin
           contentEditable={<ContentEditable className="min-h-[200px] outline-none" />}
           placeholder={<div className="text-gray-400">Start typing your note...</div>}
