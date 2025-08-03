@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { produce } from 'immer';
-import { ttsManager } from './tts';
+import { getTTSManager } from './tts'; // Updated import
 
 // Define the shape of our state
 interface AppState {
@@ -40,14 +40,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   togglePlaying: () => {
     const { isPlaying, noteContent, detectedLanguage } = get();
     if (isPlaying) {
-      ttsManager.stop();
+      getTTSManager().stop(); // Updated
       set(
         produce((state) => {
           state.isPlaying = false;
         })
       );
     } else if (noteContent) {
-      ttsManager.start(noteContent, languageMap[detectedLanguage] || 'en-US');
+      getTTSManager().start(noteContent, languageMap[detectedLanguage] || 'en-US'); // Updated
       set(
         produce((state) => {
           state.isPlaying = true;

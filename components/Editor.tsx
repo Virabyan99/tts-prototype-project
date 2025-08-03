@@ -18,7 +18,7 @@ import { ListNode, ListItemNode } from '@lexical/list';
 import { LinkNode } from '@lexical/link';
 import {franc} from 'franc';
 import Toolbar from './Toolbar';
-import { ttsManager } from '@/lib/tts';
+import { getTTSManager } from '@/lib/tts'; // Updated import
 
 const initialConfig = {
   namespace: 'NoteEditor',
@@ -86,7 +86,7 @@ function SyncPlugin() {
 
     // Sync TTS state
     const handleTTSState = () => {
-      setPlaying(ttsManager.isSpeaking());
+      setPlaying(getTTSManager().isSpeaking()); // Updated
     };
 
     // Check TTS state periodically

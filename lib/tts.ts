@@ -29,5 +29,15 @@ export class TTSManager {
   }
 }
 
-// Singleton instance
-export const ttsManager = new TTSManager();
+// Lazy-initialized singleton instance (only created on client)
+let _ttsManager: TTSManager | null = null;
+
+export function getTTSManager(): TTSManager {
+  if (typeof window === 'undefined') {
+    throw new Error('TTSManager is browser-only and cannot be used on the server');
+  }
+  if (!_ttsManager) {
+    _ttsManager = new TTSManager();
+  }
+  return _ttsManager;
+}
