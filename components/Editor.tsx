@@ -1,3 +1,4 @@
+// src/components/Editor.tsx
 'use client';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
@@ -11,14 +12,14 @@ import { useEffect, useCallback } from 'react';
 import { useAppStore } from '@/lib/store';
 import { saveNote, loadNote } from '@/lib/db';
 import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
-// Import required nodes for markdown transformers
 import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import { CodeNode } from '@lexical/code';
 import { ListNode, ListItemNode } from '@lexical/list';
 import { LinkNode } from '@lexical/link';
 import {franc} from 'franc';
 import Toolbar from './Toolbar';
-import { getTTSManager } from '@/lib/tts'; // Updated import
+import { getTTSManager } from '@/lib/tts';
+import HighlightPlugin from './HighlightPlugin';
 
 const initialConfig = {
   namespace: 'NoteEditor',
@@ -51,9 +52,9 @@ function SyncPlugin() {
   // Function to detect language using Franc
   const detectLanguage = useCallback(
     (text: string) => {
-      if (text.length < 10) return 'eng'; // Default to English for short text
-      const result = franc(text, { minLength: 10, only: ['eng', 'spa', 'fra'] }); // Limit to common languages
-      return result !== 'und' ? result : 'eng'; // Fallback to English if undetermined
+      if (text.length < 10) return 'eng';
+      const result = franc(text, { minLength: 10, only: ['eng', 'spa', 'fra'] });
+      return result !== 'und' ? result : 'eng';
     },
     []
   );
@@ -86,7 +87,7 @@ function SyncPlugin() {
 
     // Sync TTS state
     const handleTTSState = () => {
-      setPlaying(getTTSManager().isSpeaking()); // Updated
+      setPlaying(getTTSManager().isSpeaking());
     };
 
     // Check TTS state periodically
@@ -115,6 +116,7 @@ export default function Editor() {
         <HistoryPlugin />
         <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
         <SyncPlugin />
+        <HighlightPlugin />
       </div>
     </LexicalComposer>
   );

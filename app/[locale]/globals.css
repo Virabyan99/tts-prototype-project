@@ -119,4 +119,20 @@
   body {
     @apply bg-background text-foreground;
   }
+  .editor-paragraph {
+    margin: 0;
+    padding: 8px 0;
+  }
+  .editor-bold {
+    font-weight: bold;
+  }
+  .editor-italic {
+    font-style: italic;
+  }
+  .editor-underline {
+    text-decoration: underline;
+  }
+  .bg-yellow-200 {
+    background-color: #fefcbf; /* Tailwind's yellow-200 */
+  }
 }

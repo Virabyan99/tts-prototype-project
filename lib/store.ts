@@ -1,6 +1,8 @@
+// src/lib/store.ts
 import { create } from 'zustand';
 import { produce } from 'immer';
-import { getTTSManager } from './tts'; // Updated import
+import { getTTSManager } from './tts';
+import {franc} from 'franc';
 
 // Define the shape of our state
 interface AppState {
@@ -9,7 +11,7 @@ interface AppState {
   isPlaying: boolean; // Store TTS playback state
   setNoteContent: (content: string) => void;
   setDetectedLanguage: (language: string) => void;
-  togglePlaying: () => void; // Toggle TTS playback
+  togglePlaying: (selectedText?: string, offset?: number) => void; // Toggle TTS playback
   setPlaying: (isPlaying: boolean) => void; // Set playback state explicitly
 }
 
@@ -37,17 +39,23 @@ export const useAppStore = create<AppState>((set, get) => ({
         state.detectedLanguage = language;
       })
     ),
-  togglePlaying: () => {
+  togglePlaying: (selectedText?: string, offset?: number) => {
     const { isPlaying, noteContent, detectedLanguage } = get();
     if (isPlaying) {
-      getTTSManager().stop(); // Updated
+      getTTSManager().stop();
       set(
         produce((state) => {
           state.isPlaying = false;
         })
       );
-    } else if (noteContent) {
-      getTTSManager().start(noteContent, languageMap[detectedLanguage] || 'en-US'); // Updated
+    } else if (noteContent || selectedText) {
+      const textToSpeak = selectedText || noteContent;
+      const lang = selectedText
+        ? franc(selectedText, { minLength: 10, only: ['eng', 'spa', 'fra'] }) !== 'und'
+          ? franc(selectedText, { minLength: 10, only: ['eng', 'spa', 'fra'] })
+          : detectedLanguage
+        : detectedLanguage;
+      getTTSManager().start(noteContent, languageMap[lang] || 'en-US', textToSpeak, offset);
       set(
         produce((state) => {
           state.isPlaying = true;
