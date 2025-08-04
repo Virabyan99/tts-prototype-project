@@ -1,4 +1,4 @@
-// src/components/Editor.tsx
+
 'use client';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
@@ -30,6 +30,7 @@ const initialConfig = {
       bold: 'editor-bold',
       italic: 'editor-italic',
       underline: 'editor-underline',
+      highlight: 'bg-yellow-200', // Highlight style for spoken words
     },
   },
   nodes: [
@@ -106,11 +107,11 @@ function SyncPlugin() {
 export default function Editor() {
   return (
     <LexicalComposer initialConfig={initialConfig}>
-      <div className="editor-container border rounded p-4 bg-white w-full max-w-2xl">
+      <div className="editor-container border rounded bg-white w-full max-w-2xl flex flex-col">
         <Toolbar />
         <RichTextPlugin
-          contentEditable={<ContentEditable className="min-h-[200px] outline-none" />}
-          placeholder={<div className="text-gray-400">Start typing your note...</div>}
+          contentEditable={<ContentEditable className="min-h-[200px] outline-none p-4" />}
+          placeholder={<div className="text-gray-400 absolute top-20 left-4">Start typing your note...</div>}
           ErrorBoundary={LexicalErrorBoundary}
         />
         <HistoryPlugin />

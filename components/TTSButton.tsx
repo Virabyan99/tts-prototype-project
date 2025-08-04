@@ -1,4 +1,3 @@
-// src/components/TTSButton.tsx
 'use client';
 
 import { useAppStore } from '@/lib/store';
