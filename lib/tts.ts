@@ -1,9 +1,12 @@
+// lib/tts.ts
 // Utility for managing Web Speech API
 export class TTSManager {
   private utterance: SpeechSynthesisUtterance | null = null;
   private synthesis: SpeechSynthesis;
   private onWordBoundary: (charIndex: number) => void = () => {};
   private onProgress: (progress: number) => void = () => {};
+  private onSpeakingChange: (isSpeaking: boolean) => void = () => {};
+  private onEndCallback: () => void = () => {};
   private currentText: string = '';
   private baseOffset: number = 0;
   private currentStart: number = 0;
@@ -21,6 +24,16 @@ export class TTSManager {
   // Set callback for playback progress
   setProgressCallback(callback: (progress: number) => void): void {
     this.onProgress = callback;
+  }
+
+  // Set callback for speaking state changes
+  setSpeakingChangeCallback(callback: (isSpeaking: boolean) => void): void {
+    this.onSpeakingChange = callback;
+  }
+
+  // Set callback for when TTS ends
+  setEndCallback(callback: () => void): void {
+    this.onEndCallback = callback;
   }
 
   // Get available voices
@@ -44,6 +57,7 @@ export class TTSManager {
       }
     }
     this.utterance.rate = speed;
+    this.utterance.onstart = () => this.onSpeakingChange(true);
     this.utterance.onboundary = (event) => {
       if (event.name === 'word' && event.charIndex !== undefined) {
         this.onWordBoundary(event.charIndex + this.currentStart + this.baseOffset);
@@ -52,6 +66,8 @@ export class TTSManager {
       }
     };
     this.utterance.onend = () => {
+      this.onSpeakingChange(false);
+      this.onEndCallback();
       this.onProgress(0); // Reset progress when playback ends
     };
     this.synthesis.speak(this.utterance);
@@ -72,6 +88,7 @@ export class TTSManager {
         }
       }
       this.utterance.rate = speed;
+      this.utterance.onstart = () => this.onSpeakingChange(true);
       this.utterance.onboundary = (event) => {
         if (event.name === 'word' && event.charIndex !== undefined) {
           this.onWordBoundary(event.charIndex + this.currentStart + this.baseOffset);
@@ -80,6 +97,8 @@ export class TTSManager {
         }
       };
       this.utterance.onend = () => {
+        this.onSpeakingChange(false);
+        this.onEndCallback();
         this.onProgress(0);
       };
       this.synthesis.speak(this.utterance);

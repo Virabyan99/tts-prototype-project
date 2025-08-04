@@ -162,7 +162,8 @@ export default function TTSPanel() {
 
   // Refs for tracking progress changes
   const lastProgressRef = useRef<number>(0);
-  const lastTimeRef = useRef<number>(Date.now());
+  const lastTimeRef = useRef<number>(0);
+  const recentCharRates = useRef<number[]>([]);
 
   // States for waveform animation
   const [phase, setPhase] = useState(0);
@@ -173,26 +174,43 @@ export default function TTSPanel() {
   useEffect(() => {
     if (!isPlaying) {
       lastProgressRef.current = 0;
-      lastTimeRef.current = Date.now();
+      lastTimeRef.current = 0;
+      recentCharRates.current = [];
       setWaveSpeed(0.1);
       setAmp(20);
       return;
     }
 
     const now = Date.now();
+
+    if (lastTimeRef.current === 0) {
+      lastTimeRef.current = now;
+      lastProgressRef.current = 0;
+      const defaultRate = 15 * speed; // Approximate chars/sec based on speed
+      recentCharRates.current = [defaultRate];
+      setWaveSpeed(defaultRate / 50); // Tune divisor for wave speed
+      setAmp(20);
+      return;
+    }
+
     const dt = now - lastTimeRef.current;
     const dprogress = progress - lastProgressRef.current;
 
     if (dt > 0 && dprogress > 0) {
-      const rate = dprogress / (dt / 1000); // progress per second
-      setWaveSpeed(rate * 10); // Tune multiplier for desired speed
       const dchar = dprogress * textLength;
-      setAmp(dchar * 2 + 10); // Tune for amplitude based on character delta
+      const charRate = dchar / (dt / 1000);
+      recentCharRates.current.push(charRate);
+      if (recentCharRates.current.length > 5) {
+        recentCharRates.current.shift();
+      }
+      const avgCharRate = recentCharRates.current.reduce((a, b) => a + b, 0) / recentCharRates.current.length;
+      setWaveSpeed(avgCharRate / 50); // Tune for desired wave movement speed
+      setAmp(dchar * 1.5 + 10); // Tune for amplitude variation per word
     }
 
     lastProgressRef.current = progress;
     lastTimeRef.current = now;
-  }, [progress, isPlaying, textLength]);
+  }, [progress, isPlaying, textLength, speed]);
 
   // Animate phase when playing
   useEffect(() => {

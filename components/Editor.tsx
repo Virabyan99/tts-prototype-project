@@ -89,22 +89,18 @@ function SyncPlugin() {
     });
 
     // Sync TTS state and progress
-    const handleTTSState = () => {
-      const isSpeaking = getTTSManager().isSpeaking();
+    getTTSManager().setSpeakingChangeCallback((isSpeaking) => {
       setPlaying(isSpeaking);
       if (!isSpeaking) {
         setProgress(0); // Reset progress when TTS stops
         setRecording(false);
       }
-    };
-
-    // Check TTS state periodically
-    const interval = setInterval(handleTTSState, 1000);
+    });
 
     // Clean up
     return () => {
       unsubscribe();
-      clearInterval(interval);
+      getTTSManager().setSpeakingChangeCallback(() => {});
     };
   }, [editor, setNoteContent, setDetectedLanguage, detectLanguage, setPlaying, setProgress, setRecording]);
 

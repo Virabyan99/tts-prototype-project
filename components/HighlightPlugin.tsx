@@ -1,3 +1,4 @@
+// components/HighlightPlugin.tsx
 'use client';
 
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
@@ -127,40 +128,36 @@ export default function HighlightPlugin() {
 
     // Clear highlighting when TTS stops
     const handleTTSStop = () => {
-      if (!getTTSManager().isSpeaking()) {
-        editor.update(() => {
-          if (previousRangeRef.current) {
-            const prevSelection = $createRangeSelection();
-            prevSelection.anchor.set(
-              previousRangeRef.current.anchorKey,
-              previousRangeRef.current.anchorOffset,
-              'text'
-            );
-            prevSelection.focus.set(
-              previousRangeRef.current.focusKey,
-              previousRangeRef.current.focusOffset,
-              'text'
-            );
-            const nodes = prevSelection.getNodes();
-            nodes.forEach((node) => {
-              if (node instanceof TextNode) {
-                node.setFormat(0); // Clear all formats
-              }
-            });
-            previousRangeRef.current = null;
-          }
-          $setSelection(null); // Clear selection
-        });
-      }
+      editor.update(() => {
+        if (previousRangeRef.current) {
+          const prevSelection = $createRangeSelection();
+          prevSelection.anchor.set(
+            previousRangeRef.current.anchorKey,
+            previousRangeRef.current.anchorOffset,
+            'text'
+          );
+          prevSelection.focus.set(
+            previousRangeRef.current.focusKey,
+            previousRangeRef.current.focusOffset,
+            'text'
+          );
+          const nodes = prevSelection.getNodes();
+          nodes.forEach((node) => {
+            if (node instanceof TextNode) {
+              node.setFormat(0); // Clear all formats
+            }
+          });
+          previousRangeRef.current = null;
+        }
+      });
     };
 
-    // Check TTS state periodically
-    const interval = setInterval(handleTTSStop, 1000);
+    getTTSManager().setEndCallback(handleTTSStop);
 
     // Clean up
     return () => {
-      clearInterval(interval);
       getTTSManager().setWordBoundaryCallback(() => {}); // Reset callback
+      getTTSManager().setEndCallback(() => {});
     };
   }, [editor]);
 
