@@ -1,3 +1,4 @@
+// components/Editor.tsx
 'use client';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
@@ -49,6 +50,7 @@ function SyncPlugin() {
   const setDetectedLanguage = useAppStore((state) => state.setDetectedLanguage);
   const setPlaying = useAppStore((state) => state.setPlaying);
   const setProgress = useAppStore((state) => state.setProgress);
+  const setRecording = useAppStore((state) => state.setRecording);
 
   // Function to detect language using Franc
   const detectLanguage = useCallback(
@@ -92,6 +94,7 @@ function SyncPlugin() {
       setPlaying(isSpeaking);
       if (!isSpeaking) {
         setProgress(0); // Reset progress when TTS stops
+        setRecording(false);
       }
     };
 
@@ -103,7 +106,7 @@ function SyncPlugin() {
       unsubscribe();
       clearInterval(interval);
     };
-  }, [editor, setNoteContent, setDetectedLanguage, detectLanguage, setPlaying, setProgress]);
+  }, [editor, setNoteContent, setDetectedLanguage, detectLanguage, setPlaying, setProgress, setRecording]);
 
   return null;
 }

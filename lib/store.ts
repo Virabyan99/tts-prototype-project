@@ -1,3 +1,4 @@
+// lib/store.ts
 import { create } from 'zustand';
 import { produce } from 'immer';
 import { getTTSManager } from './tts';
@@ -13,6 +14,7 @@ interface AppState {
   currentText: string; // The text being spoken
   voiceURI: string | null;
   speed: number;
+  isRecording: boolean;
   setNoteContent: (content: string) => void;
   setDetectedLanguage: (language: string) => void;
   togglePlaying: (selectedText?: string, offset?: number) => void; // Toggle TTS playback
@@ -21,6 +23,7 @@ interface AppState {
   seekTo: (progress: number) => void; // Seek to a specific progress point
   setVoiceURI: (voiceURI: string | null) => void;
   setSpeed: (speed: number) => void;
+  setRecording: (isRecording: boolean) => void;
 }
 
 // Map ISO 639-3 codes to Web Speech API language codes
@@ -39,6 +42,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   currentText: '',
   voiceURI: null,
   speed: 1,
+  isRecording: false,
   setNoteContent: (content) =>
     set(
       produce((state) => {
@@ -59,6 +63,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         produce((state) => {
           state.isPlaying = false;
           state.progress = 0;
+          state.isRecording = false;
         })
       );
     } else if (noteContent || selectedText) {
@@ -111,6 +116,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     set(
       produce((state) => {
         state.speed = speed;
+      })
+    ),
+  setRecording: (isRecording) =>
+    set(
+      produce((state) => {
+        state.isRecording = isRecording;
       })
     ),
 }));
