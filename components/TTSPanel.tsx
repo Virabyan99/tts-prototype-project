@@ -9,7 +9,36 @@ export default function TTSPanel() {
   const progress = useAppStore((state) => state.progress);
   const currentText = useAppStore((state) => state.currentText);
   const textLength = currentText.length;
+  const detectedLanguage = useAppStore((state) => state.detectedLanguage);
+  const voiceURI = useAppStore((state) => state.voiceURI);
+  const speed = useAppStore((state) => state.speed);
+  const setVoiceURI = useAppStore((state) => state.setVoiceURI);
+  const setSpeed = useAppStore((state) => state.setSpeed);
   const seekTo = useAppStore((state) => state.seekTo);
+
+  // Map ISO 639-3 to Web Speech API language codes
+  const languageMap: Record<string, string> = {
+    eng: 'en-US',
+    spa: 'es-ES',
+    fra: 'fr-FR',
+  };
+
+  // State for available voices
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+
+  // Load voices
+  useEffect(() => {
+    const loadVoices = () => {
+      const availableVoices = getTTSManager().getVoices();
+      setVoices(availableVoices);
+    };
+    loadVoices();
+    // Handle voice list changes (e.g., browser updates)
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, []);
 
   // Define animation for panel appearance/disappearance
   const panelAnimation = useSpring({
@@ -73,7 +102,7 @@ export default function TTSPanel() {
 
   // States for waveform animation
   const [phase, setPhase] = useState(0);
-  const [speed, setSpeed] = useState(0.1);
+  const [waveSpeed, setWaveSpeed] = useState(0.1);
   const [amp, setAmp] = useState(20);
 
   // Update speed and amp based on progress changes (approximating speech rhythm)
@@ -81,7 +110,7 @@ export default function TTSPanel() {
     if (!isPlaying) {
       lastProgressRef.current = 0;
       lastTimeRef.current = Date.now();
-      setSpeed(0.1);
+      setWaveSpeed(0.1);
       setAmp(20);
       return;
     }
@@ -92,7 +121,7 @@ export default function TTSPanel() {
 
     if (dt > 0 && dprogress > 0) {
       const rate = dprogress / (dt / 1000); // progress per second
-      setSpeed(rate * 10); // Tune multiplier for desired speed
+      setWaveSpeed(rate * 10); // Tune multiplier for desired speed
       const dchar = dprogress * textLength;
       setAmp(dchar * 2 + 10); // Tune for amplitude based on character delta
     }
@@ -106,17 +135,22 @@ export default function TTSPanel() {
     let interval: NodeJS.Timeout | null = null;
     if (isPlaying) {
       interval = setInterval(() => {
-        setPhase((p) => p + speed);
+        setPhase((p) => p + waveSpeed);
       }, 50); // Update every 50ms
     }
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isPlaying, speed]);
+  }, [isPlaying, waveSpeed]);
 
   // Compute waveform heights based on sine wave for wave-like effect
   const waveformHeights = Array.from({ length: 50 }, (_, i) =>
     amp * (Math.sin(i * 0.2 + phase) * 0.5 + 0.5) + 10
+  );
+
+  // Filter voices by detected language
+  const filteredVoices = voices.filter((voice) =>
+    voice.lang.startsWith(languageMap[detectedLanguage]?.split('-')[0] || 'en')
   );
 
   return (
@@ -159,13 +193,36 @@ export default function TTSPanel() {
             />
           </div>
         </div>
-        {/* Placeholder for Voice Selector */}
-        <div className="bg-gray-200 h-8 flex items-center justify-center text-sm text-gray-600 rounded-md">
-          Voice Selector (To be implemented)
+        {/* Voice Selector */}
+        <div className="bg-white h-8 flex items-center justify-center text-sm text-gray-600 rounded-md border">
+          <select
+            value={voiceURI || ''}
+            onChange={(e) => setVoiceURI(e.target.value || null)}
+            className="w-full h-full p-1 border-0 rounded text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-400"
+            aria-label="Select TTS Voice"
+          >
+            <option value="">Default Voice</option>
+            {filteredVoices.map((voice) => (
+              <option key={voice.voiceURI} value={voice.voiceURI}>
+                {voice.name} ({voice.lang})
+              </option>
+            ))}
+          </select>
         </div>
-        {/* Placeholder for Speed Selector */}
-        <div className="bg-gray-200 h-8 flex items-center justify-center text-sm text-gray-600 rounded-md">
-          Speed Selector (To be implemented)
+        {/* Speed Selector */}
+        <div className="bg-white h-8 flex items-center justify-center text-sm text-gray-600 rounded-md border">
+          <select
+            value={speed}
+            onChange={(e) => setSpeed(Number(e.target.value))}
+            className="w-full h-full p-1 border-0 rounded text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-400"
+            aria-label="Select TTS Speed"
+          >
+            {[0.5, 0.8, 0.9, 1, 1.1, 1.2].map((speedOption) => (
+              <option key={speedOption} value={speedOption}>
+                {speedOption}x
+              </option>
+            ))}
+          </select>
         </div>
         {/* Placeholder for Recording Selector */}
         <div className="col-span-2 bg-gray-200 h-8 flex items-center justify-center text-sm text-gray-600 rounded-md">

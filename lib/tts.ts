@@ -1,4 +1,3 @@
-
 // Utility for managing Web Speech API
 export class TTSManager {
   private utterance: SpeechSynthesisUtterance | null = null;
@@ -6,6 +5,9 @@ export class TTSManager {
   private onWordBoundary: (charIndex: number) => void = () => {};
   private onProgress: (progress: number) => void = () => {};
   private currentText: string = '';
+  private baseOffset: number = 0;
+  private currentStart: number = 0;
+  private currentLength: number = 0;
 
   constructor() {
     this.synthesis = window.speechSynthesis;
@@ -21,16 +23,31 @@ export class TTSManager {
     this.onProgress = callback;
   }
 
+  // Get available voices
+  getVoices(): SpeechSynthesisVoice[] {
+    return this.synthesis.getVoices();
+  }
+
   // Start TTS with given text and language
-  start(text: string, language: string, selectedText?: string, offset?: number): void {
+  start(language: string, textToSpeak: string, offset?: number, voiceURI: string | null = null, speed: number = 1): void {
     this.stop(); // Stop any ongoing speech
-    this.currentText = selectedText || text;
+    this.currentText = textToSpeak;
+    this.baseOffset = offset || 0;
+    this.currentStart = 0;
+    this.currentLength = this.currentText.length;
     this.utterance = new SpeechSynthesisUtterance(this.currentText);
     this.utterance.lang = language; // Set language (e.g., 'en-US', 'es-ES')
+    if (voiceURI) {
+      const voice = this.getVoices().find((v) => v.voiceURI === voiceURI);
+      if (voice) {
+        this.utterance.voice = voice;
+      }
+    }
+    this.utterance.rate = speed;
     this.utterance.onboundary = (event) => {
       if (event.name === 'word' && event.charIndex !== undefined) {
-        this.onWordBoundary(event.charIndex + (offset || 0));
-        const progress = event.charIndex / this.currentText.length;
+        this.onWordBoundary(event.charIndex + this.currentStart + this.baseOffset);
+        const progress = (event.charIndex + this.currentStart) / this.currentLength;
         this.onProgress(progress);
       }
     };
@@ -41,16 +58,24 @@ export class TTSManager {
   }
 
   // Seek to a specific position in the text
-  seekTo(charIndex: number, language: string): void {
+  seekTo(charIndex: number, language: string, voiceURI: string | null = null, speed: number = 1): void {
     if (this.currentText) {
       const remainingText = this.currentText.slice(charIndex);
       this.stop();
+      this.currentStart = charIndex;
       this.utterance = new SpeechSynthesisUtterance(remainingText);
       this.utterance.lang = language;
+      if (voiceURI) {
+        const voice = this.getVoices().find((v) => v.voiceURI === voiceURI);
+        if (voice) {
+          this.utterance.voice = voice;
+        }
+      }
+      this.utterance.rate = speed;
       this.utterance.onboundary = (event) => {
         if (event.name === 'word' && event.charIndex !== undefined) {
-          this.onWordBoundary(event.charIndex + charIndex); // Adjust for sliced text
-          const progress = (event.charIndex + charIndex) / this.currentText.length;
+          this.onWordBoundary(event.charIndex + this.currentStart + this.baseOffset);
+          const progress = (event.charIndex + this.currentStart) / this.currentLength;
           this.onProgress(progress);
         }
       };

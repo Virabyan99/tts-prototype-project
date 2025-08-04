@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { produce } from 'immer';
 import { getTTSManager } from './tts';
 import {franc} from 'franc';
+import { loadPreferences } from './db';
 
 // Define the shape of our state
 interface AppState {
@@ -10,12 +11,16 @@ interface AppState {
   isPlaying: boolean; // Store TTS playback state
   progress: number; // TTS playback progress (0 to 1)
   currentText: string; // The text being spoken
+  voiceURI: string | null;
+  speed: number;
   setNoteContent: (content: string) => void;
   setDetectedLanguage: (language: string) => void;
   togglePlaying: (selectedText?: string, offset?: number) => void; // Toggle TTS playback
   setPlaying: (isPlaying: boolean) => void; // Set playback state explicitly
   setProgress: (progress: number) => void;
   seekTo: (progress: number) => void; // Seek to a specific progress point
+  setVoiceURI: (voiceURI: string | null) => void;
+  setSpeed: (speed: number) => void;
 }
 
 // Map ISO 639-3 codes to Web Speech API language codes
@@ -32,6 +37,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   isPlaying: false,
   progress: 0,
   currentText: '',
+  voiceURI: null,
+  speed: 1,
   setNoteContent: (content) =>
     set(
       produce((state) => {
@@ -45,7 +52,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       })
     ),
   togglePlaying: (selectedText?: string, offset?: number) => {
-    const { isPlaying, noteContent, detectedLanguage } = get();
+    const { isPlaying, noteContent, detectedLanguage, voiceURI, speed } = get();
     if (isPlaying) {
       getTTSManager().stop();
       set(
@@ -61,7 +68,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           ? franc(selectedText, { minLength: 10, only: ['eng', 'spa', 'fra'] })
           : detectedLanguage
         : detectedLanguage;
-      getTTSManager().start(noteContent, languageMap[lang] || 'en-US', textToSpeak, offset);
+      getTTSManager().start(languageMap[lang] || 'en-US', textToSpeak, offset, voiceURI, speed);
       set(
         produce((state) => {
           state.isPlaying = true;
@@ -83,10 +90,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       })
     ),
   seekTo: (progress) => {
-    const { currentText, detectedLanguage, isPlaying } = get();
+    const { currentText, detectedLanguage, isPlaying, voiceURI, speed } = get();
     if (currentText && isPlaying) {
       const charIndex = Math.floor(progress * currentText.length);
-      getTTSManager().seekTo(charIndex, languageMap[detectedLanguage] || 'en-US');
+      getTTSManager().seekTo(charIndex, languageMap[detectedLanguage] || 'en-US', voiceURI, speed);
       set(
         produce((state) => {
           state.progress = progress;
@@ -94,4 +101,28 @@ export const useAppStore = create<AppState>((set, get) => ({
       );
     }
   },
+  setVoiceURI: (voiceURI) =>
+    set(
+      produce((state) => {
+        state.voiceURI = voiceURI;
+      })
+    ),
+  setSpeed: (speed) =>
+    set(
+      produce((state) => {
+        state.speed = speed;
+      })
+    ),
 }));
+
+// Load preferences on store initialization
+loadPreferences().then((prefs) => {
+  if (prefs) {
+    useAppStore.setState(
+      produce((state: AppState) => {
+        state.voiceURI = prefs.voiceURI;
+        state.speed = prefs.speed;
+      })
+    );
+  }
+});
