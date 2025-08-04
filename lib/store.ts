@@ -1,4 +1,3 @@
-// src/lib/store.ts
 import { create } from 'zustand';
 import { produce } from 'immer';
 import { getTTSManager } from './tts';
@@ -9,10 +8,14 @@ interface AppState {
   noteContent: string; // Store the note content
   detectedLanguage: string; // Store the ISO 639-3 language code
   isPlaying: boolean; // Store TTS playback state
+  progress: number; // TTS playback progress (0 to 1)
+  currentText: string; // The text being spoken
   setNoteContent: (content: string) => void;
   setDetectedLanguage: (language: string) => void;
   togglePlaying: (selectedText?: string, offset?: number) => void; // Toggle TTS playback
   setPlaying: (isPlaying: boolean) => void; // Set playback state explicitly
+  setProgress: (progress: number) => void;
+  seekTo: (progress: number) => void; // Seek to a specific progress point
 }
 
 // Map ISO 639-3 codes to Web Speech API language codes
@@ -27,6 +30,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   noteContent: '',
   detectedLanguage: 'eng',
   isPlaying: false,
+  progress: 0,
+  currentText: '',
   setNoteContent: (content) =>
     set(
       produce((state) => {
@@ -46,6 +51,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       set(
         produce((state) => {
           state.isPlaying = false;
+          state.progress = 0;
         })
       );
     } else if (noteContent || selectedText) {
@@ -59,6 +65,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       set(
         produce((state) => {
           state.isPlaying = true;
+          state.currentText = textToSpeak;
         })
       );
     }
@@ -69,4 +76,22 @@ export const useAppStore = create<AppState>((set, get) => ({
         state.isPlaying = isPlaying;
       })
     ),
+  setProgress: (progress) =>
+    set(
+      produce((state) => {
+        state.progress = progress;
+      })
+    ),
+  seekTo: (progress) => {
+    const { currentText, detectedLanguage, isPlaying } = get();
+    if (currentText && isPlaying) {
+      const charIndex = Math.floor(progress * currentText.length);
+      getTTSManager().seekTo(charIndex, languageMap[detectedLanguage] || 'en-US');
+      set(
+        produce((state) => {
+          state.progress = progress;
+        })
+      );
+    }
+  },
 }));
